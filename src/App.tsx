@@ -12,8 +12,8 @@ type ViewMode = 'dashboard' | 'lista';
 
 export default function App() {
   const [chamados, setChamados] = useState<Chamado[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [showModal, setShowModal] = useState<boolean>(false);
+  const [loading, setLoading] = useState(true);
+  const [showModal, setShowModal] = useState(false);
   const [ministerioFiltro, setMinisterioFiltro] = useState<Ministerio | null>(null);
   const [view, setView] = useState<ViewMode>('dashboard');
 
@@ -22,19 +22,6 @@ export default function App() {
   ========================== */
   useEffect(() => {
     loadChamados();
-
-    const channel = supabase
-      .channel('chamados_changes')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'chamados' },
-        () => loadChamados()
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
   }, []);
 
   /* =========================
@@ -69,6 +56,8 @@ export default function App() {
         .insert([{ ...data, status: STATUS_INICIAL }]);
 
       if (error) throw error;
+
+      await loadChamados(); // 🔥 atualiza a lista
       setShowModal(false);
     } catch (err) {
       console.error('Erro ao criar chamado:', err);
@@ -80,10 +69,15 @@ export default function App() {
     try {
       const { error } = await supabase
         .from('chamados')
-        .update({ status, updated_at: new Date().toISOString() })
+        .update({
+          status,
+          updated_at: new Date().toISOString()
+        })
         .eq('id', id);
 
       if (error) throw error;
+
+      await loadChamados(); // 🔥 atualiza a lista
     } catch (err) {
       console.error('Erro ao atualizar status:', err);
       alert('Erro ao atualizar status');
@@ -129,13 +123,19 @@ export default function App() {
         <header className="mb-8">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h1 className="text-4xl font-bold text-gray-900 mb-2">Sistema de Chamados</h1>
-              <p className="text-gray-600">Gerencie solicitações dos ministérios</p>
+              <h1 className="text-4xl font-bold text-gray-900 mb-2">
+                Sistema de Chamados
+              </h1>
+              <p className="text-gray-600">
+                Gerencie solicitações dos ministérios
+              </p>
             </div>
 
             <div className="flex gap-3">
               <button
-                onClick={() => setView(view === 'dashboard' ? 'lista' : 'dashboard')}
+                onClick={() =>
+                  setView(view === 'dashboard' ? 'lista' : 'dashboard')
+                }
                 className="px-6 py-3 bg-white border border-gray-300 text-gray-700 rounded-xl font-medium hover:bg-gray-50 flex items-center gap-2 shadow-sm"
               >
                 <List className="w-5 h-5" />
@@ -169,18 +169,20 @@ export default function App() {
         {view === 'dashboard' ? (
           <>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-              {(['Comunicação', 'Recepção', 'Ornamentação'] as Ministerio[]).map(m => (
-                <MinisterioCard
-                  key={m}
-                  ministerio={m}
-                  totalChamados={getTotalPorMinisterio(m)}
-                  pendentes={getPendentesPorMinisterio(m)}
-                  onClick={() => {
-                    setMinisterioFiltro(m);
-                    setView('lista');
-                  }}
-                />
-              ))}
+              {(['Comunicação', 'Recepção', 'Ornamentação'] as Ministerio[]).map(
+                m => (
+                  <MinisterioCard
+                    key={m}
+                    ministerio={m}
+                    totalChamados={getTotalPorMinisterio(m)}
+                    pendentes={getPendentesPorMinisterio(m)}
+                    onClick={() => {
+                      setMinisterioFiltro(m);
+                      setView('lista');
+                    }}
+                  />
+                )
+              )}
             </div>
 
             <div className="bg-white rounded-2xl border p-6 shadow-sm">
@@ -214,3 +216,8 @@ export default function App() {
     </div>
   );
 }
+const { data, error } = await supabase
+  .from('chamados')
+  .select('*')
+
+console.log(data, error)
