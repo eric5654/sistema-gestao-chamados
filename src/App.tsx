@@ -29,6 +29,7 @@ export default function App() {
   ========================== */
   const loadChamados = async () => {
     setLoading(true);
+
     try {
       const { data, error } = await supabase
         .from('chamados')
@@ -36,6 +37,7 @@ export default function App() {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
+
       setChamados(data ?? []);
     } catch (err) {
       console.error('Erro ao carregar chamados:', err);
@@ -57,7 +59,7 @@ export default function App() {
 
       if (error) throw error;
 
-      await loadChamados(); // 🔥 atualiza a lista
+      await loadChamados();
       setShowModal(false);
     } catch (err) {
       console.error('Erro ao criar chamado:', err);
@@ -77,7 +79,7 @@ export default function App() {
 
       if (error) throw error;
 
-      await loadChamados(); // 🔥 atualiza a lista
+      await loadChamados();
     } catch (err) {
       console.error('Erro ao atualizar status:', err);
       alert('Erro ao atualizar status');
@@ -216,8 +218,3 @@ export default function App() {
     </div>
   );
 }
-const { data, error } = await supabase
-  .from('chamados')
-  .select('*')
-
-console.log(data, error)
